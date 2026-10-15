@@ -1,6 +1,7 @@
 //#include "Image.h"
 #include "mesh.h"
 #include "texture.h"
+#include "camera.h"
 // Always include window first (because it includes glfw, which includes GL which needs to be included AFTER glew).
 // Can't wait for modules to fix this stuff...
 #include <framework/disable_all_warnings.h>
@@ -77,6 +78,10 @@ public:
             ImGui::InputInt("This is an integer input", &dummyInteger); // Use ImGui::DragInt or ImGui::DragFloat for larger range of numbers.
             ImGui::Text("Value is: %i", dummyInteger); // Use C printf formatting rules (%i is a signed integer)
             ImGui::Checkbox("Use material if no texture", &m_useMaterial);
+            
+            static constexpr std::array<const char*, 2> kCameraModeNames {"Top View", "Third Person"};
+            
+            ImGui::Combo("Camera", &m_activeCamera, kCameraModeNames.data(), (int) kCameraModeNames.size());
             ImGui::End();
 
             // Clear the screen
@@ -86,7 +91,8 @@ public:
             // ...
             glEnable(GL_DEPTH_TEST);
 
-            const glm::mat4 mvpMatrix = m_projectionMatrix * m_viewMatrix * m_modelMatrix;
+            const Camera& activeCamera = m_cameras[m_activeCamera];
+            const glm::mat4 mvpMatrix = m_projectionMatrix * activeCamera.viewMatrix();
             // Normals should be transformed differently than positions (ignoring translations + dealing with scaling):
             // https://paroj.github.io/gltut/Illumination/Tut09%20Normal%20Transformation.html
             const glm::mat3 normalModelMatrix = glm::inverseTranspose(glm::mat3(m_modelMatrix));
@@ -108,6 +114,8 @@ public:
                 }
                 mesh.draw(m_defaultShader);
             }
+            
+            m_cameras[m_activeCamera].updateInput();
 
             // Processes input and swaps the window buffer
             m_window.swapBuffers();
@@ -120,6 +128,7 @@ public:
     void onKeyPressed(int key, int mods)
     {
         std::cout << "Key pressed: " << key << std::endl;
+        
     }
 
     // In here you can handle key releases
@@ -167,6 +176,9 @@ private:
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(80.0f), 1.0f, 0.1f, 30.0f);
     glm::mat4 m_viewMatrix = glm::lookAt(glm::vec3(-1, 1, -1), glm::vec3(0), glm::vec3(0, 1, 0));
     glm::mat4 m_modelMatrix { 1.0f };
+
+    std::vector<Camera> m_cameras = {Camera(&m_window), Camera(&m_window)};
+    int m_activeCamera = 0;
 };
 
 int main()
