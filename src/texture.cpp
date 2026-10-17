@@ -25,6 +25,9 @@ Texture::Texture(Image cpuTexture)
         case 1:
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, cpuTexture.width, cpuTexture.height, 0, GL_RED, GL_UNSIGNED_BYTE, cpuTexture.get_data());
             break;
+        case 2:
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, cpuTexture.width, cpuTexture.height, 0, GL_RG, GL_UNSIGNED_BYTE, cpuTexture.get_data());
+            break;
         case 3:
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, cpuTexture.width, cpuTexture.height, 0, GL_RGB, GL_UNSIGNED_BYTE, cpuTexture.get_data());
             break;

@@ -1,5 +1,7 @@
 #pragma once
 #include "texture.h"
+#include "material.h"
+#include "enum.h"
 #include <framework/disable_all_warnings.h>
 #include <framework/mesh.h>
 #include <framework/shader.h>
@@ -28,6 +30,8 @@ struct GPUMaterial {
 class GPUMesh {
 public:
     GPUMesh(const Mesh& cpuMesh);
+    GPUMesh(const Mesh& cpuMesh, std::shared_ptr<PBRMaterial> pbrMaterial);
+    
     // Cannot copy a GPU mesh because it would require reference counting of GPU resources.
     GPUMesh(const GPUMesh&) = delete;
     GPUMesh(GPUMesh&&);
@@ -35,7 +39,8 @@ public:
 
     // Generate a number of GPU meshes from a particular model file.
     // Multiple meshes may be generated if there are multiple sub-meshes in the file
-    static std::vector<GPUMesh> loadMeshGPU(std::filesystem::path filePath, bool normalize = false);
+    static std::vector<GPUMesh> loadMeshGPU(std::filesystem::path filePath, bool normalize = false,
+                                            std::shared_ptr<PBRMaterial> pbrMaterial = nullptr);
 
     // Cannot copy a GPU mesh because it would require reference counting of GPU resources.
     GPUMesh& operator=(const GPUMesh&) = delete;
@@ -44,7 +49,7 @@ public:
     bool hasTextureCoords() const;
 
     // Bind VAO and call glDrawElements.
-    void draw(const Shader& drawingShader);
+    void draw(const Shader& drawingShader, DisplayMode displayMode = DisplayMode::Normal);
 
 private:
     void moveInto(GPUMesh&&);
@@ -60,5 +65,6 @@ private:
     GLuint m_vao { INVALID };
     GLuint m_uboMaterial { INVALID };
     
+    std::shared_ptr<PBRMaterial> m_pbrMaterial;
     std::shared_ptr<Texture> m_texture;
 };

@@ -18,19 +18,16 @@ DISABLE_WARNINGS_POP()
 
 class SceneNode {
 public:
-    SceneNode(const std::filesystem::path& objPath);
-    SceneNode(const std::filesystem::path& objPath, const glm::mat4& transform);
+    SceneNode(const std::filesystem::path& objPath,
+              const glm::mat4& transform = glm::mat4(1.0f),
+              std::vector<std::shared_ptr<SceneNode>> children = {},
+              std::shared_ptr<PBRMaterial> pbrMaterial = nullptr);
 
-    SceneNode(const std::vector<std::shared_ptr<SceneNode>> children);
+    // Group node without its own mesh.
+    SceneNode(std::vector<std::shared_ptr<SceneNode>> children,
+              const glm::mat4& transform = glm::mat4(1.0f));
 
-    SceneNode(const std::filesystem::path& objPath, 
-              const std::vector<std::shared_ptr<SceneNode>> children);
-
-    SceneNode(const std::filesystem::path& objPath, 
-              const glm::mat4& transform,
-              const std::vector<std::shared_ptr<SceneNode>> children);
-    
-    void draw(const Shader& drawingShader, const glm::mat4& viewProjection, const glm::mat4& parentWorld = glm::mat4(1.0f));
+    void draw(const Shader& drawingShader, const glm::mat4& viewProjection, const glm::mat4& parentWorld = glm::mat4(1.0f), DisplayMode displayMode = DisplayMode::Normal);
 private:
     std::vector<std::shared_ptr<SceneNode>> m_children;
     std::vector<GPUMesh> m_meshes;

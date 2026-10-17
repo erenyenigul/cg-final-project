@@ -3,6 +3,7 @@
 #include "texture.h"
 #include "camera.h"
 #include "scenenode.h"
+#include "enum.h"
 // Always include window first (because it includes glfw, which includes GL which needs to be included AFTER glew).
 // Can't wait for modules to fix this stuff...
 #include <framework/disable_all_warnings.h>
@@ -22,6 +23,7 @@ DISABLE_WARNINGS_POP()
 #include <functional>
 #include <iostream>
 #include <vector>
+
 
 class Application {
 public:
@@ -47,8 +49,12 @@ public:
 
         m_sceneNodes.emplace_back(RESOURCE_ROOT "resources/character-human.obj");
         m_sceneNodes.emplace_back(RESOURCE_ROOT "resources/floor.obj", 
-            glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.01, 0)), glm::vec3(10, 1, 10)));
-        m_sceneNodes.emplace_back(RESOURCE_ROOT "resources/chest.obj", 
+            glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.01, 0)), glm::vec3(10, 1, 10)),
+               std::vector<std::shared_ptr<SceneNode>>{},
+            std::make_shared<PBRMaterial>(RESOURCE_ROOT "resources/PBR/snow")
+        );
+        m_sceneNodes.emplace_back(
+            RESOURCE_ROOT "resources/chest.obj", 
             glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(0.5, 0.0, .5)), glm::radians(45.0f), glm::vec3(0, 1, 0)));
         
         try {
@@ -82,14 +88,15 @@ public:
 
             // Use ImGui for easy input/output of ints, floats, strings, etc...
             ImGui::Begin("Window");
-            ImGui::Checkbox("Use material if no texture", &m_useMaterial);
             
             static constexpr std::array<const char*, 2> kCameraModeNames {"Top View", "Third Person"};
             
             ImGui::Combo("Camera", &m_activeCamera, kCameraModeNames.data(), (int) kCameraModeNames.size());
             ImGui::Separator();
-            ImGui::Checkbox("PBR shading", &m_usePBR);
-            ImGui::Checkbox("Material textures", &m_useMaterialTextures);
+            int displayMode = static_cast<int>(m_displayMode);
+            if (ImGui::Combo("Display Mode", &displayMode, "Normal\0Material\0Texture\0PBR\0"))
+                m_displayMode = static_cast<DisplayMode>(displayMode);
+            
             ImGui::End();
 
             // Clear the screen
@@ -103,7 +110,7 @@ public:
             const glm::mat4 viewProjection = m_projectionMatrix * activeCamera.viewMatrix();
 
             for (SceneNode& node : m_sceneNodes) {
-                node.draw(m_defaultShader, viewProjection, m_modelMatrix);
+                node.draw(m_defaultShader, viewProjection, m_modelMatrix, m_displayMode);
             }
             m_cameras[m_activeCamera].updateInput();
 
@@ -159,19 +166,17 @@ private:
     Shader m_shadowShader;
 
     std::vector<SceneNode> m_sceneNodes;
-    bool m_useMaterial { false };
 
     glm::mat4 m_modelMatrix { 1.0f };
-     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(80.0f), 1.0f, 0.1f, 30.0f);
+    glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(80.0f), 1.0f, 0.1f, 30.0f);
     std::vector<Camera> m_cameras = {
         Camera(&m_window, glm::vec3(0, 5, 0), glm::vec3(0, -1, -0.01f)), 
         Camera(&m_window)    
     };
 
-    bool m_usePBR = false;
-    bool m_useMaterialTextures = false;
-
     int m_activeCamera = 1;
+    DisplayMode m_displayMode = DisplayMode::PBR;
+
 };
 
 int main()

@@ -1,5 +1,6 @@
 #include "mesh.h"
 #include "texture.h"
+#include "enum.h"
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
 #include <fmt/format.h>
@@ -15,6 +16,11 @@ GPUMaterial::GPUMaterial(const Material& material) :
 {}
 
 GPUMesh::GPUMesh(const Mesh& cpuMesh)
+    : GPUMesh(cpuMesh, nullptr)
+{}
+
+GPUMesh::GPUMesh(const Mesh& cpuMesh, std::shared_ptr<PBRMaterial> pbrMaterial)
+    : m_pbrMaterial(pbrMaterial)
 {
     // Create uniform buffer to store mesh material (https://learnopengl.com/Advanced-OpenGL/Advanced-GLSL)
     GPUMaterial gpuMaterial(cpuMesh.material);
@@ -76,14 +82,15 @@ GPUMesh& GPUMesh::operator=(GPUMesh&& other)
     return *this;
 }
 
-std::vector<GPUMesh> GPUMesh::loadMeshGPU(std::filesystem::path filePath, bool normalize) {
+std::vector<GPUMesh> GPUMesh::loadMeshGPU(std::filesystem::path filePath, bool normalize,
+                                          std::shared_ptr<PBRMaterial> pbrMaterial) {
     if (!std::filesystem::exists(filePath))
         throw MeshLoadingException(fmt::format("File {} does not exist", filePath.string().c_str()));
 
     // Generate GPU-side meshes for all sub-meshes
     std::vector<Mesh> subMeshes = loadMesh(filePath, { .normalizeVertexPositions = normalize });
     std::vector<GPUMesh> gpuMeshes;
-    for (const Mesh& mesh : subMeshes) { gpuMeshes.emplace_back(mesh); }
+    for (const Mesh& mesh : subMeshes) { gpuMeshes.emplace_back(mesh, pbrMaterial); }
     
     return gpuMeshes;
 }
@@ -93,16 +100,22 @@ bool GPUMesh::hasTextureCoords() const
     return m_hasTextureCoords;
 }
 
-void GPUMesh::draw(const Shader& drawingShader)
+void GPUMesh::draw(const Shader& drawingShader, DisplayMode displayMode)
 {
     // Bind material data uniform (we assume that the uniform buffer objects is always called 'Material')
     // Yes, we could define the binding inside the shader itself, but that would break on OpenGL versions below 4.2
     drawingShader.bindUniformBlock("Material", 0, m_uboMaterial);
     
-    if (m_texture)
+    if (displayMode == DisplayMode::PBR && !m_pbrMaterial && m_texture)
+        displayMode = DisplayMode::Texture;
+
+    if (displayMode == DisplayMode::PBR && m_pbrMaterial)
+        m_pbrMaterial->bind();
+
+    else if (displayMode == DisplayMode::Texture && m_texture)
         m_texture->bind(GL_TEXTURE0);
 
-    // Draw the mesh's triangles
+    glUniform1i(drawingShader.getUniformLocation("displayMode"), static_cast<int>(displayMode));
     glBindVertexArray(m_vao);
     glDrawElements(GL_TRIANGLES, m_numIndices, GL_UNSIGNED_INT, nullptr);
 }
@@ -117,6 +130,7 @@ void GPUMesh::moveInto(GPUMesh&& other)
     m_vao = other.m_vao;
     m_uboMaterial = other.m_uboMaterial;
     m_texture = std::move(other.m_texture);
+    m_pbrMaterial = std::move(other.m_pbrMaterial);
 
     other.m_numIndices = 0;
     other.m_hasTextureCoords = other.m_hasTextureCoords;

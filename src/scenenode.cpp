@@ -14,34 +14,22 @@ DISABLE_WARNINGS_POP()
 #include <glm/mat4x4.hpp>
 #include <iostream>
 
-SceneNode::SceneNode(const std::filesystem::path& objPath)
-    : m_meshes(GPUMesh::loadMeshGPU(objPath))
-{}
-
-SceneNode::SceneNode(const std::filesystem::path& objPath, const glm::mat4& transform)
-    : m_meshes(GPUMesh::loadMeshGPU(objPath)),
-    transform(transform)
-{}
-
-SceneNode::SceneNode(const std::vector<std::shared_ptr<SceneNode>> children)
-    : m_children(children)
-{}
-
-SceneNode::SceneNode(const std::filesystem::path& objPath, 
-                     const std::vector<std::shared_ptr<SceneNode>> children)
-    : m_children(children),
-    m_meshes(GPUMesh::loadMeshGPU(objPath))
-{}
-
-SceneNode::SceneNode(const std::filesystem::path& objPath, 
+SceneNode::SceneNode(const std::filesystem::path& objPath,
                      const glm::mat4& transform,
-                     const std::vector<std::shared_ptr<SceneNode>> children)
-    : m_children(children),
-    m_meshes(GPUMesh::loadMeshGPU(objPath)),
+                     std::vector<std::shared_ptr<SceneNode>> children,
+                     std::shared_ptr<PBRMaterial> pbrMaterial)
+    : m_children(std::move(children)),
+    m_meshes(GPUMesh::loadMeshGPU(objPath, false, std::move(pbrMaterial))),
     transform(transform)
 {}
 
-void SceneNode::draw(const Shader& drawingShader, const glm::mat4& viewProjection, const glm::mat4& parentWorld)
+SceneNode::SceneNode(std::vector<std::shared_ptr<SceneNode>> children,
+                     const glm::mat4& transform)
+    : m_children(std::move(children)),
+    transform(transform)
+{}
+
+void SceneNode::draw(const Shader& drawingShader, const glm::mat4& viewProjection, const glm::mat4& parentWorld, DisplayMode displayMode)
 {
     const glm::mat4 world = parentWorld * transform;
     const glm::mat4 mvpMatrix = viewProjection * world;
@@ -54,18 +42,11 @@ void SceneNode::draw(const Shader& drawingShader, const glm::mat4& viewProjectio
         glUniformMatrix4fv(drawingShader.getUniformLocation("mvpMatrix"), 1, GL_FALSE, glm::value_ptr(mvpMatrix));
         glUniformMatrix4fv(drawingShader.getUniformLocation("modelMatrix"), 1, GL_FALSE, glm::value_ptr(world));
         glUniformMatrix3fv(drawingShader.getUniformLocation("normalModelMatrix"), 1, GL_FALSE, glm::value_ptr(normalModelMatrix));
-        if (mesh.hasTextureCoords()) {
-            glUniform1i(drawingShader.getUniformLocation("colorMap"), 0);
-            glUniform1i(drawingShader.getUniformLocation("hasTexCoords"), GL_TRUE);
-            glUniform1i(drawingShader.getUniformLocation("useMaterial"), GL_FALSE);
-        } else {
-            glUniform1i(drawingShader.getUniformLocation("hasTexCoords"), GL_FALSE);
-            glUniform1i(drawingShader.getUniformLocation("useMaterial"), true);
-        }
-        mesh.draw(drawingShader);
+
+        mesh.draw(drawingShader, displayMode);
     }
 
     for (const std::shared_ptr<SceneNode>& child : m_children) {
-        child->draw(drawingShader, viewProjection, world);
+        child->draw(drawingShader, viewProjection, world, displayMode);
     }
 }

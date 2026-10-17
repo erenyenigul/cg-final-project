@@ -8,9 +8,11 @@ layout(std140) uniform Material // Must match the GPUMaterial defined in src/mes
 	float transparency;
 };
 
-uniform sampler2D colorMap;
-uniform bool hasTexCoords;
-uniform bool useMaterial;
+uniform sampler2D color;
+uniform sampler2D displacement;
+uniform sampler2D roughness;
+
+uniform int displayMode; // 0 - Normal, 1 - Material, 2 - Texture, 3 - PBR
 
 in vec3 fragPosition;
 in vec3 fragNormal;
@@ -22,8 +24,9 @@ void main()
 {
     vec3 normal = normalize(fragNormal);
 
-
-    if (hasTexCoords)       { fragColor = vec4(texture(colorMap, fragTexCoord).rgb, 1);}
-    else if (useMaterial)   { fragColor = vec4(kd, 1);}
-    else                    { fragColor = vec4(normal, 1); } // Output color value, change from (1, 0, 0) to something else
+    if (displayMode == 0)        { fragColor = vec4(normal, 1); }
+    else if (displayMode == 1)   { fragColor = vec4(kd, 1);}
+    else if (displayMode == 2)   { fragColor = vec4(texture(color, fragTexCoord).rgb, 1);}
+    else if (displayMode == 3)   { fragColor = vec4(texture(color, fragPosition.xz * 0.5).rgb, 1); } // Output color value, change from (1, 0, 0) to something else
+    else                         { fragColor = vec4(normal, 1); } // Output color value, change from (1, 0, 0) to something else
 }
