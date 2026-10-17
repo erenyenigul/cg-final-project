@@ -7,13 +7,8 @@ DISABLE_WARNINGS_POP()
 
 #include <iostream>
 
-Texture::Texture(std::filesystem::path filePath)
+Texture::Texture(Image cpuTexture)
 {
-    // Load image from disk to CPU memory.
-    // Image class is defined in <framework/image.h>
-    Image cpuTexture { filePath };
-
-    // Create a texture on the GPU and bind it for parameter setting
     glGenTextures(1, &m_texture);
     glBindTexture(GL_TEXTURE_2D, m_texture);
 
@@ -44,6 +39,10 @@ Texture::Texture(std::filesystem::path filePath)
     // Generate mip-maps
     glGenerateMipmap(GL_TEXTURE_2D);
 }
+
+Texture::Texture(std::filesystem::path filePath)
+    : Texture(Image { filePath })
+{}
 
 Texture::Texture(Texture&& other)
     : m_texture(other.m_texture)

@@ -1,11 +1,14 @@
 #pragma once
+#include <framework/shader.h>
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
 #include <glm/vec3.hpp>
 DISABLE_WARNINGS_POP()
 #include <exception>
+#include <stb/stb_image.h>
 #include <filesystem>
 #include <framework/opengl_includes.h>
+#include <framework/image.h>
 
 struct ImageLoadingException : public std::runtime_error {
     using std::runtime_error::runtime_error;
@@ -14,6 +17,7 @@ struct ImageLoadingException : public std::runtime_error {
 class Texture {
 public:
     Texture(std::filesystem::path filePath);
+    Texture(Image image);
     Texture(const Texture&) = delete;
     Texture(Texture&&);
     ~Texture();

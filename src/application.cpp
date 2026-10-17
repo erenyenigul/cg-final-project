@@ -1,6 +1,8 @@
 //#include "Image.h"
 #include "mesh.h"
 #include "texture.h"
+#include "camera.h"
+#include "scenenode.h"
 // Always include window first (because it includes glfw, which includes GL which needs to be included AFTER glew).
 // Can't wait for modules to fix this stuff...
 #include <framework/disable_all_warnings.h>
@@ -41,8 +43,15 @@ public:
                 onMouseReleased(button, mods);
         });
 
-        m_meshes = GPUMesh::loadMeshGPU(RESOURCE_ROOT "resources/dragon.obj");
+        // Load scene nodes/objects
+        // Temporary objects for now
 
+        m_sceneNodes.emplace_back(RESOURCE_ROOT "resources/character-human.obj");
+        m_sceneNodes.emplace_back(RESOURCE_ROOT "resources/floor.obj", 
+            glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.01, 0)), glm::vec3(10, 1, 10)));
+        m_sceneNodes.emplace_back(RESOURCE_ROOT "resources/chest.obj", 
+            glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(0.5, 0.0, .5)), glm::radians(45.0f), glm::vec3(0, 1, 0)));
+        
         try {
             ShaderBuilder defaultBuilder;
             defaultBuilder.addStage(GL_VERTEX_SHADER, RESOURCE_ROOT "shaders/shader_vert.glsl");
@@ -74,9 +83,14 @@ public:
 
             // Use ImGui for easy input/output of ints, floats, strings, etc...
             ImGui::Begin("Window");
-            ImGui::InputInt("This is an integer input", &dummyInteger); // Use ImGui::DragInt or ImGui::DragFloat for larger range of numbers.
-            ImGui::Text("Value is: %i", dummyInteger); // Use C printf formatting rules (%i is a signed integer)
             ImGui::Checkbox("Use material if no texture", &m_useMaterial);
+            
+            static constexpr std::array<const char*, 2> kCameraModeNames {"Top View", "Third Person"};
+            
+            ImGui::Combo("Camera", &m_activeCamera, kCameraModeNames.data(), (int) kCameraModeNames.size());
+            ImGui::Separator();
+            ImGui::Checkbox("PBR shading", &m_usePBR);
+            ImGui::Checkbox("Material textures", &m_useMaterialTextures);
             ImGui::End();
 
             // Clear the screen
@@ -86,28 +100,13 @@ public:
             // ...
             glEnable(GL_DEPTH_TEST);
 
-            const glm::mat4 mvpMatrix = m_projectionMatrix * m_viewMatrix * m_modelMatrix;
-            // Normals should be transformed differently than positions (ignoring translations + dealing with scaling):
-            // https://paroj.github.io/gltut/Illumination/Tut09%20Normal%20Transformation.html
-            const glm::mat3 normalModelMatrix = glm::inverseTranspose(glm::mat3(m_modelMatrix));
+            const Camera& activeCamera = m_cameras[m_activeCamera];
+            const glm::mat4 viewProjection = m_projectionMatrix * activeCamera.viewMatrix();
 
-            for (GPUMesh& mesh : m_meshes) {
-                m_defaultShader.bind();
-                glUniformMatrix4fv(m_defaultShader.getUniformLocation("mvpMatrix"), 1, GL_FALSE, glm::value_ptr(mvpMatrix));
-                //Uncomment this line when you use the modelMatrix (or fragmentPosition)
-                //glUniformMatrix4fv(m_defaultShader.getUniformLocation("modelMatrix"), 1, GL_FALSE, glm::value_ptr(m_modelMatrix));
-                glUniformMatrix3fv(m_defaultShader.getUniformLocation("normalModelMatrix"), 1, GL_FALSE, glm::value_ptr(normalModelMatrix));
-                if (mesh.hasTextureCoords()) {
-                    m_texture.bind(GL_TEXTURE0);
-                    glUniform1i(m_defaultShader.getUniformLocation("colorMap"), 0);
-                    glUniform1i(m_defaultShader.getUniformLocation("hasTexCoords"), GL_TRUE);
-                    glUniform1i(m_defaultShader.getUniformLocation("useMaterial"), GL_FALSE);
-                } else {
-                    glUniform1i(m_defaultShader.getUniformLocation("hasTexCoords"), GL_FALSE);
-                    glUniform1i(m_defaultShader.getUniformLocation("useMaterial"), m_useMaterial);
-                }
-                mesh.draw(m_defaultShader);
+            for (SceneNode& node : m_sceneNodes) {
+                node.draw(m_defaultShader, viewProjection, m_modelMatrix);
             }
+            m_cameras[m_activeCamera].updateInput();
 
             // Processes input and swaps the window buffer
             m_window.swapBuffers();
@@ -120,6 +119,7 @@ public:
     void onKeyPressed(int key, int mods)
     {
         std::cout << "Key pressed: " << key << std::endl;
+        
     }
 
     // In here you can handle key releases
@@ -159,14 +159,21 @@ private:
     Shader m_defaultShader;
     Shader m_shadowShader;
 
-    std::vector<GPUMesh> m_meshes;
+    std::vector<SceneNode> m_sceneNodes;
     Texture m_texture;
-    bool m_useMaterial { true };
+    bool m_useMaterial { false };
 
-    // Projection and view matrices for you to fill in and use
-    glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(80.0f), 1.0f, 0.1f, 30.0f);
-    glm::mat4 m_viewMatrix = glm::lookAt(glm::vec3(-1, 1, -1), glm::vec3(0), glm::vec3(0, 1, 0));
     glm::mat4 m_modelMatrix { 1.0f };
+     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(80.0f), 1.0f, 0.1f, 30.0f);
+    std::vector<Camera> m_cameras = {
+        Camera(&m_window, glm::vec3(0, 5, 0), glm::vec3(0, -1, -0.01f)), 
+        Camera(&m_window)    
+    };
+
+    bool m_usePBR = false;
+    bool m_useMaterialTextures = false;
+
+    int m_activeCamera = 1;
 };
 
 int main()

@@ -1,4 +1,5 @@
 #include "mesh.h"
+#include "texture.h"
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
 #include <fmt/format.h>
@@ -23,6 +24,10 @@ GPUMesh::GPUMesh(const Mesh& cpuMesh)
 
     // Figure out if this mesh has texture coordinates
     m_hasTextureCoords = static_cast<bool>(cpuMesh.material.kdTexture);
+    
+    if (m_hasTextureCoords) {
+        m_texture = std::make_shared<Texture>(*cpuMesh.material.kdTexture);
+    }
 
     // Create VAO and bind it so subsequent creations of VBO and IBO are bound to this VAO
     glGenVertexArrays(1, &m_vao);
@@ -94,6 +99,9 @@ void GPUMesh::draw(const Shader& drawingShader)
     // Yes, we could define the binding inside the shader itself, but that would break on OpenGL versions below 4.2
     drawingShader.bindUniformBlock("Material", 0, m_uboMaterial);
     
+    if (m_texture)
+        m_texture->bind(GL_TEXTURE0);
+
     // Draw the mesh's triangles
     glBindVertexArray(m_vao);
     glDrawElements(GL_TRIANGLES, m_numIndices, GL_UNSIGNED_INT, nullptr);
@@ -108,6 +116,7 @@ void GPUMesh::moveInto(GPUMesh&& other)
     m_vbo = other.m_vbo;
     m_vao = other.m_vao;
     m_uboMaterial = other.m_uboMaterial;
+    m_texture = std::move(other.m_texture);
 
     other.m_numIndices = 0;
     other.m_hasTextureCoords = other.m_hasTextureCoords;

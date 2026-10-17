@@ -1,5 +1,5 @@
 #pragma once
-
+#include "texture.h"
 #include <framework/disable_all_warnings.h>
 #include <framework/mesh.h>
 #include <framework/shader.h>
@@ -59,4 +59,6 @@ private:
     GLuint m_vbo { INVALID };
     GLuint m_vao { INVALID };
     GLuint m_uboMaterial { INVALID };
+    
+    std::shared_ptr<Texture> m_texture;
 };
