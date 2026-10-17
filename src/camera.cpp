@@ -8,7 +8,7 @@ DISABLE_WARNINGS_PUSH()
 DISABLE_WARNINGS_POP()
 
 Camera::Camera(Window* pWindow)
-    : Camera(pWindow, glm::vec3(0), glm::vec3(0, 0, -1))
+    : m_pWindow(pWindow)
 {
 }
 
