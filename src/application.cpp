@@ -27,7 +27,6 @@ class Application {
 public:
     Application()
         : m_window("Final Project", glm::ivec2(1024, 1024), OpenGLVersion::GL41)
-        , m_texture(RESOURCE_ROOT "resources/checkerboard.png")
     {
         m_window.registerKeyCallback([this](int key, int scancode, int action, int mods) {
             if (action == GLFW_PRESS)
@@ -160,7 +159,6 @@ private:
     Shader m_shadowShader;
 
     std::vector<SceneNode> m_sceneNodes;
-    Texture m_texture;
     bool m_useMaterial { false };
 
     glm::mat4 m_modelMatrix { 1.0f };
