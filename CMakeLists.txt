@@ -16,6 +16,7 @@ add_executable(Master_TechDemo
 	"src/camera.cpp"
 	"src/material.cpp"
 	"src/scenenode.cpp"
+	"src/light.cpp"
 )
 
 target_compile_definitions(Master_TechDemo PRIVATE RESOURCE_ROOT="${CMAKE_CURRENT_LIST_DIR}/")

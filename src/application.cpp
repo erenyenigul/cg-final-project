@@ -4,6 +4,7 @@
 #include "camera.h"
 #include "scenenode.h"
 #include "enum.h"
+#include "light.h"
 // Always include window first (because it includes glfw, which includes GL which needs to be included AFTER glew).
 // Can't wait for modules to fix this stuff...
 #include <framework/disable_all_warnings.h>
@@ -113,6 +114,7 @@ public:
                 node.draw(m_defaultShader, viewProjection, m_modelMatrix, m_displayMode);
             }
             m_cameras[m_activeCamera].updateInput();
+            m_sun.bind(m_defaultShader);
 
             // Processes input and swaps the window buffer
             m_window.swapBuffers();
@@ -177,6 +179,7 @@ private:
     int m_activeCamera = 1;
     DisplayMode m_displayMode = DisplayMode::PBR;
 
+    DirectionalLight m_sun { glm::vec3(-1, -1, -1), glm::vec3(1, 1, 1), 1.0f };
 };
 
 int main()
