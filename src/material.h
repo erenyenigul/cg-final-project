@@ -16,4 +16,5 @@ private:
     Texture m_color;
     Texture m_displacement;
     Texture m_roughness;
+    Texture m_normal;
 };

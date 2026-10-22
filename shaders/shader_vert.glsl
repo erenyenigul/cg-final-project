@@ -9,10 +9,12 @@ uniform mat3 normalModelMatrix;
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec2 texCoord;
+layout(location = 3) in vec4 tangent;
 
 out vec3 fragPosition;
 out vec3 fragNormal;
 out vec2 fragTexCoord;
+out vec4 fragTangent;
 
 void main()
 {
@@ -21,4 +23,8 @@ void main()
     fragPosition    = (modelMatrix * vec4(position, 1)).xyz;
     fragNormal      = normalModelMatrix * normal;
     fragTexCoord    = vec2(texCoord.x, 1.0 - texCoord.y);
+
+    vec3 worldTangent = normalize(mat3(modelMatrix) * tangent.xyz);
+    float orientation = determinant(mat3(modelMatrix)) < 0.0 ? -1.0 : 1.0;
+    fragTangent = vec4(worldTangent, tangent.w * orientation);
 }
