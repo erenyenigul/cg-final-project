@@ -64,7 +64,6 @@ private:
     GLuint m_vbo { INVALID };
     GLuint m_vao { INVALID };
     GLuint m_uboMaterial { INVALID };
-    GLuint m_tangentVbo { INVALID };
     
     std::shared_ptr<PBRMaterial> m_pbrMaterial;
     std::shared_ptr<Texture> m_texture;

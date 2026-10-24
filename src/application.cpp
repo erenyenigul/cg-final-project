@@ -130,6 +130,7 @@ public:
                 node.draw(m_defaultShader, viewProjection, m_modelMatrix, m_displayMode);
             }
             m_cameras[m_activeCamera].updateInput();
+            m_sun.bind(m_defaultShader);
 
             // Processes input and swaps the window buffer
             m_window.swapBuffers();

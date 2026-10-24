@@ -7,8 +7,6 @@ DISABLE_WARNINGS_PUSH()
 DISABLE_WARNINGS_POP()
 #include <iostream>
 #include <vector>
-#include <glm/geometric.hpp>
-#include <cmath>
 
 GPUMaterial::GPUMaterial(const Material& material) :
     kd(material.kd),
@@ -37,68 +35,6 @@ GPUMesh::GPUMesh(const Mesh& cpuMesh, std::shared_ptr<PBRMaterial> pbrMaterial)
         m_texture = std::make_shared<Texture>(*cpuMesh.material.kdTexture);
     }
 
-    
-    std::vector<glm::vec3> tangentSum(cpuMesh.vertices.size(), glm::vec3(0.0f));
-    std::vector<glm::vec3> bitangentSum(cpuMesh.vertices.size(), glm::vec3(0.0f));
-
-    // maybe better way to do
-    for (const auto& triangle : cpuMesh.triangles) {
-
-        const auto i0 = triangle[0];
-        const auto i1 = triangle[1];
-        const auto i2 = triangle[2];
-
-        const Vertex& v0 = cpuMesh.vertices[i0];
-        const Vertex& v1 = cpuMesh.vertices[i1];
-        const Vertex& v2 = cpuMesh.vertices[i2];
-        
-        // edges of triangle in model space
-        glm::vec3 e1 = v1.position - v0.position;
-        glm::vec3 e2 = v2.position - v0.position;
-
-        // same edges in uv space
-        glm::vec2 duv1 = v1.texCoord - v0.texCoord;
-        glm::vec2 duv2 = v2.texCoord - v0.texCoord;
-        
-        // calculate determinate  of m
-        float det = duv1.x * duv2.y - duv1.y * duv2.x;
-
-        // small det case
-        if (std::abs(det) < 1e-8f)
-            continue;
-
-        float f = 1.0f / det;
-        
-        // solve t and b
-        glm::vec3 T = f * (duv2.y * e1 - duv1.y * e2);
-        glm::vec3 B = f * (-duv2.x * e1 + duv1.x * e2);
-
-        tangentSum[i0] += T;
-        tangentSum[i1] += T;
-        tangentSum[i2] += T;
-
-        bitangentSum[i0] += B;
-        bitangentSum[i1] += B;
-        bitangentSum[i2] += B;
-    }
-
-    std::vector<glm::vec4> tangents(cpuMesh.vertices.size());
-
-    for (size_t i = 0; i < cpuMesh.vertices.size(); ++i) {
-        glm::vec3 N = glm::normalize(cpuMesh.vertices[i].normal);
-        glm::vec3 T = tangentSum[i];
-
-        // Gram-Schmidt thank you sir
-        T = glm::normalize(T - N * glm::dot(N, T));
-
-        // Determine bitangent orientation
-        float sign = glm::dot(glm::cross(N, T), bitangentSum[i]) < 0.0f
-            ? -1.0f
-            : 1.0f;
-
-        tangents[i] = glm::vec4(T, sign);
-    }
-
     // Create VAO and bind it so subsequent creations of VBO and IBO are bound to this VAO
     glGenVertexArrays(1, &m_vao);
     glBindVertexArray(m_vao);
@@ -121,30 +57,6 @@ GPUMesh::GPUMesh(const Mesh& cpuMesh, std::shared_ptr<PBRMaterial> pbrMaterial)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
-
-    glGenBuffers(1, &m_tangentVbo);
-    glBindBuffer(GL_ARRAY_BUFFER, m_tangentVbo);
-
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        static_cast<GLsizeiptr>(tangents.size() * sizeof(glm::vec4)),
-        tangents.data(),
-        GL_STATIC_DRAW
-    );
-
-    glEnableVertexAttribArray(3);
-
-    glVertexAttribPointer(
-        3,
-        4,
-        GL_FLOAT,
-        GL_FALSE,
-        sizeof(glm::vec4),
-        nullptr
-    );
-
-    glVertexAttribDivisor(3, 0);
-
     // Reuse all attributes for each instance
     glVertexAttribDivisor(0, 0);
     glVertexAttribDivisor(1, 0);
@@ -198,16 +110,8 @@ void GPUMesh::draw(const Shader& drawingShader, DisplayMode displayMode)
     if (displayMode == DisplayMode::PBR && !m_pbrMaterial && m_texture)
         displayMode = DisplayMode::Texture;
 
-    if (displayMode == DisplayMode::PBR && m_pbrMaterial) {
-    m_pbrMaterial->bind();
-
-        glUniform1i(
-            drawingShader.getUniformLocation("normalMap"),
-            3
-        );
-    }
-
-        
+    if (displayMode == DisplayMode::PBR && m_pbrMaterial)
+        m_pbrMaterial->bind();
 
     else if (displayMode == DisplayMode::Texture && m_texture)
         m_texture->bind(GL_TEXTURE0);
@@ -225,7 +129,6 @@ void GPUMesh::moveInto(GPUMesh&& other)
     m_ibo = other.m_ibo;
     m_vbo = other.m_vbo;
     m_vao = other.m_vao;
-    m_tangentVbo = other.m_tangentVbo;
     m_uboMaterial = other.m_uboMaterial;
     m_texture = std::move(other.m_texture);
     m_pbrMaterial = std::move(other.m_pbrMaterial);
@@ -236,7 +139,6 @@ void GPUMesh::moveInto(GPUMesh&& other)
     other.m_vbo = INVALID;
     other.m_vao = INVALID;
     other.m_uboMaterial = INVALID;
-    other.m_tangentVbo = INVALID;
 }
 
 void GPUMesh::freeGpuMemory()
@@ -249,6 +151,4 @@ void GPUMesh::freeGpuMemory()
         glDeleteBuffers(1, &m_ibo);
     if (m_uboMaterial != INVALID)
         glDeleteBuffers(1, &m_uboMaterial);
-    if (m_tangentVbo != INVALID)
-        glDeleteBuffers(1, &m_tangentVbo);
 }

@@ -20,7 +20,6 @@ uniform int displayMode; // 0 - Normal, 1 - Material, 2 - Texture, 3 - PBR
 in vec3 fragPosition;
 in vec3 fragNormal;
 in vec2 fragTexCoord;
-in vec4 fragTangent;
 
 
 uniform vec3 lightDirection;
@@ -29,23 +28,6 @@ uniform vec3 cameraPosition;
 uniform float lightIntensity;
 
 layout(location = 0) out vec4 fragColor;
-
-vec3 getNormalFromMap(vec2 uv)
-{
-    vec3 tangentNormal = texture(normalMap, uv).rgb;
-    tangentNormal = normalize(tangentNormal * 2.0 - 1.0);
-
-    vec3 N = normalize(fragNormal);
-
-    vec3 T = normalize(fragTangent.xyz);
-    T = normalize(T - dot(T, N) * N);
-    vec3 B = fragTangent.w * cross(N, T);
-
-    mat3 TBN = mat3(T, B, N);
-
-    return normalize(TBN * tangentNormal);
-}
-
 
 void main()
 {
