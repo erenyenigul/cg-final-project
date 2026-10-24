@@ -48,16 +48,19 @@ public:
         // Load scene nodes/objects
         // Temporary objects for now
 
+        /*
         m_sceneNodes.emplace_back(RESOURCE_ROOT "resources/character-human.obj");
+        */
         m_sceneNodes.emplace_back(RESOURCE_ROOT "resources/floor.obj", 
             glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.01, 0)), glm::vec3(10, 1, 10)),
                std::vector<std::shared_ptr<SceneNode>>{},
-            std::make_shared<PBRMaterial>(RESOURCE_ROOT "resources/PBR/snow")
+            std::make_shared<PBRMaterial>(RESOURCE_ROOT "resources/PBR/metal", 1.0f)
         );
+        /*
         m_sceneNodes.emplace_back(
             RESOURCE_ROOT "resources/chest.obj", 
             glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(0.5, 0.0, .5)), glm::radians(45.0f), glm::vec3(0, 1, 0)));
-        
+        */
         try {
             ShaderBuilder defaultBuilder;
             defaultBuilder.addStage(GL_VERTEX_SHADER, RESOURCE_ROOT "shaders/shader_vert.glsl");
@@ -192,7 +195,7 @@ private:
     int m_activeCamera = 1;
     DisplayMode m_displayMode = DisplayMode::PBR;
 
-    DirectionalLight m_sun {glm::vec3(0, 0.3f, -1), glm::vec3(1, 1, 1), 5.0f };
+    DirectionalLight m_sun {glm::vec3(0, 0.9f, -1), glm::vec3(1, 1, 1), 5.0f };
     glm::vec3 m_ambientColor { 0.25f, 0.3f, 0.4f };
 };
 

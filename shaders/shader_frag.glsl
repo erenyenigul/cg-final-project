@@ -14,6 +14,7 @@ layout(std140) uniform Material // Must match the GPUMaterial defined in src/mes
 uniform sampler2D color;
 uniform sampler2D displacement;
 uniform sampler2D roughness;
+uniform float metallic;
 
 uniform int displayMode; // 0 - Normal, 1 - Material, 2 - Texture, 3 - PBR
 
@@ -65,8 +66,7 @@ vec4 pbr() {
     vec3 h = normalize(v + l);
     vec3 n = normalize(fragNormal);
     
-    vec3 f_0 = vec3(0.04);  //base reflectance
-
+    vec3 f_0 = mix(vec3(0.04), albedo, metallic);
     vec3 f = F(f_0, h, v);
     float g2 = G2(h, v, l, n, alpha);
     float d = D(h, n, alpha);
@@ -76,7 +76,8 @@ vec4 pbr() {
     float NdotL = max(dot(n, l), 0.0);
     float NdotV = max(dot(n, v), 0.0);
 
-    vec3 diffuse = (1.0 - f) * albedo / PI;
+    vec3 kD = (1.0 - f) * (1.0 - metallic);
+    vec3 diffuse = kD * albedo / PI;
     vec3 specular = (f*g2*d / max(4.0 * NdotV * NdotL, 0.001f));
 
     vec3 c = radiance * (specular + diffuse) * NdotL + ambientColor * albedo;

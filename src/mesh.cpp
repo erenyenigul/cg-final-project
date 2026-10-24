@@ -110,7 +110,7 @@ void GPUMesh::draw(const Shader& drawingShader, DisplayMode displayMode)
         displayMode = DisplayMode::Texture;
 
     if (displayMode == DisplayMode::PBR && m_pbrMaterial)
-        m_pbrMaterial->bind();
+        m_pbrMaterial->bind(drawingShader);
 
     else if (displayMode == DisplayMode::Texture && m_texture)
         m_texture->bind(GL_TEXTURE0);
