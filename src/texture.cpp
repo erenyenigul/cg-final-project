@@ -7,7 +7,7 @@ DISABLE_WARNINGS_POP()
 
 #include <iostream>
 
-Texture::Texture(Image cpuTexture)
+Texture::Texture(Image cpuTexture, bool srgb)
 {
     glGenTextures(1, &m_texture);
     glBindTexture(GL_TEXTURE_2D, m_texture);
@@ -29,10 +29,10 @@ Texture::Texture(Image cpuTexture)
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, cpuTexture.width, cpuTexture.height, 0, GL_RG, GL_UNSIGNED_BYTE, cpuTexture.get_data());
             break;
         case 3:
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, cpuTexture.width, cpuTexture.height, 0, GL_RGB, GL_UNSIGNED_BYTE, cpuTexture.get_data());
+            glTexImage2D(GL_TEXTURE_2D, 0, srgb ? GL_SRGB : GL_RGB, cpuTexture.width, cpuTexture.height, 0, GL_RGB, GL_UNSIGNED_BYTE, cpuTexture.get_data());
             break;
         case 4:
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, cpuTexture.width, cpuTexture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, cpuTexture.get_data());
+            glTexImage2D(GL_TEXTURE_2D, 0, srgb ? GL_SRGB8_ALPHA8 : GL_RGBA, cpuTexture.width, cpuTexture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, cpuTexture.get_data());
             break;
         default:
             std::cerr << "Number of channels read for texture is not supported" << std::endl;
@@ -43,8 +43,8 @@ Texture::Texture(Image cpuTexture)
     glGenerateMipmap(GL_TEXTURE_2D);
 }
 
-Texture::Texture(std::filesystem::path filePath)
-    : Texture(Image { filePath })
+Texture::Texture(std::filesystem::path filePath, bool srgb)
+    : Texture(Image { filePath }, srgb)
 {}
 
 Texture::Texture(Texture&& other)

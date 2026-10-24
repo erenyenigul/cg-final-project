@@ -9,7 +9,7 @@ DISABLE_WARNINGS_POP()
 #include <iostream>
 
 PBRMaterial::PBRMaterial(const std::filesystem::path& filePath)
-    : m_color(filePath / "color.jpg")
+    : m_color(filePath / "color.jpg", true)
     , m_displacement(filePath / "displacement.png")
     , m_roughness(filePath / "roughness.jpg")
 {}
