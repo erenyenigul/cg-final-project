@@ -193,6 +193,7 @@ void GPUMesh::draw(const Shader& drawingShader, DisplayMode displayMode)
     // Bind material data uniform (we assume that the uniform buffer objects is always called 'Material')
     // Yes, we could define the binding inside the shader itself, but that would break on OpenGL versions below 4.2
     drawingShader.bindUniformBlock("Material", 0, m_uboMaterial);
+    glUniform1i(drawingShader.getUniformLocation("hasPBRMaterial"), static_cast<bool>(m_pbrMaterial));
     
     if (displayMode == DisplayMode::PBR && !m_pbrMaterial && m_texture)
         displayMode = DisplayMode::Texture;

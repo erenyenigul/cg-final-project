@@ -3,6 +3,7 @@
 #include "texture.h"
 #include "camera.h"
 #include "scenenode.h"
+#include "cubemap.h"
 #include "enum.h"
 #include "light.h"
 // Always include window first (because it includes glfw, which includes GL which needs to be included AFTER glew).
@@ -29,7 +30,7 @@ DISABLE_WARNINGS_POP()
 class Application {
 public:
     Application()
-        : m_window("Final Project", glm::ivec2(1024, 1024), OpenGLVersion::GL41)
+        : m_window("Final Project", glm::ivec2(1024, 1024), OpenGLVersion::GL41), m_environmentMap(RESOURCE_ROOT "resources/PBR/snow")
     {
         m_window.registerKeyCallback([this](int key, int scancode, int action, int mods) {
             if (action == GLFW_PRESS)
@@ -47,7 +48,10 @@ public:
 
         // Load scene nodes/objects
         // Temporary objects for now
-
+        m_sceneNodes.emplace_back(
+            RESOURCE_ROOT "resources/sphere.obj",
+            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f))
+        );
         m_sceneNodes.emplace_back(RESOURCE_ROOT "resources/character-human.obj");
         m_sceneNodes.emplace_back(RESOURCE_ROOT "resources/floor.obj", 
             glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.01, 0)), glm::vec3(10, 1, 10)),
@@ -111,7 +115,16 @@ public:
             const glm::mat4 viewProjection = m_projectionMatrix * activeCamera.viewMatrix();
 
             m_defaultShader.bind();
+            const glm::vec3 cameraPosition = activeCamera.cameraPos();
+            glUniform3fv(m_defaultShader.getUniformLocation("cameraPosition"), 1, glm::value_ptr(cameraPosition));
             m_sun.bind(m_defaultShader);
+
+            m_environmentMap.bind(GL_TEXTURE4);
+
+            glUniform1i(
+        m_defaultShader.getUniformLocation("environmentMap"),
+            4
+            );
 
             for (SceneNode& node : m_sceneNodes) {
                 node.draw(m_defaultShader, viewProjection, m_modelMatrix, m_displayMode);
@@ -165,6 +178,7 @@ public:
 private:
     Window m_window;
 
+    Cubemap m_environmentMap;
     // Shader for default rendering and for depth rendering
     Shader m_defaultShader;
     Shader m_shadowShader;
