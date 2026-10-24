@@ -1,6 +1,5 @@
 # Created by Kenney (www.kenney.nl)
 
-newmtl colormap
+newmtl snow
 Kd 1 1 1
-map_Kd Textures/colormap.png
-
+map_Kd PBR/snow/color.jpg

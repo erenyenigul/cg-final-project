@@ -48,25 +48,34 @@ public:
         // Load scene nodes/objects
         // Temporary objects for now
 
+        /*
         m_sceneNodes.emplace_back(RESOURCE_ROOT "resources/character-human.obj");
+        */
         m_sceneNodes.emplace_back(RESOURCE_ROOT "resources/floor.obj", 
             glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.01, 0)), glm::vec3(10, 1, 10)),
                std::vector<std::shared_ptr<SceneNode>>{},
-            std::make_shared<PBRMaterial>(RESOURCE_ROOT "resources/PBR/snow")
+            std::make_shared<PBRMaterial>(RESOURCE_ROOT "resources/PBR/metal", 1.0f)
         );
+        /*
         m_sceneNodes.emplace_back(
             RESOURCE_ROOT "resources/chest.obj", 
             glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(0.5, 0.0, .5)), glm::radians(45.0f), glm::vec3(0, 1, 0)));
-        
+        */
         try {
             ShaderBuilder defaultBuilder;
             defaultBuilder.addStage(GL_VERTEX_SHADER, RESOURCE_ROOT "shaders/shader_vert.glsl");
             defaultBuilder.addStage(GL_FRAGMENT_SHADER, RESOURCE_ROOT "shaders/shader_frag.glsl");
             m_defaultShader = defaultBuilder.build();
 
+            m_defaultShader.bind();
+
+            glUniform1i(m_defaultShader.getUniformLocation("color"), 0);
+            glUniform1i(m_defaultShader.getUniformLocation("displacement"), 1);
+            glUniform1i(m_defaultShader.getUniformLocation("roughness"), 2);
+            
             ShaderBuilder shadowBuilder;
             shadowBuilder.addStage(GL_VERTEX_SHADER, RESOURCE_ROOT "shaders/shadow_vert.glsl");
-            shadowBuilder.addStage(GL_FRAGMENT_SHADER, RESOURCE_ROOT "Shaders/shadow_frag.glsl");
+            shadowBuilder.addStage(GL_FRAGMENT_SHADER, RESOURCE_ROOT "shaders/shadow_frag.glsl");
             m_shadowShader = shadowBuilder.build();
 
             // Any new shaders can be added below in similar fashion.
@@ -97,7 +106,8 @@ public:
             int displayMode = static_cast<int>(m_displayMode);
             if (ImGui::Combo("Display Mode", &displayMode, "Normal\0Material\0Texture\0PBR\0"))
                 m_displayMode = static_cast<DisplayMode>(displayMode);
-            
+            ImGui::ColorEdit3("Ambient Color", glm::value_ptr(m_ambientColor));
+
             ImGui::End();
 
             // Clear the screen
@@ -110,11 +120,17 @@ public:
             const Camera& activeCamera = m_cameras[m_activeCamera];
             const glm::mat4 viewProjection = m_projectionMatrix * activeCamera.viewMatrix();
 
+            m_defaultShader.bind();
+
+            glUniform3fv(m_defaultShader.getUniformLocation("cameraPosition"), 1, glm::value_ptr(m_cameras[m_activeCamera].cameraPos()));
+            m_sun.bind(m_defaultShader);
+            glUniform3fv(m_defaultShader.getUniformLocation("ambientColor"), 1, glm::value_ptr(m_ambientColor));
+
             for (SceneNode& node : m_sceneNodes) {
                 node.draw(m_defaultShader, viewProjection, m_modelMatrix, m_displayMode);
             }
+
             m_cameras[m_activeCamera].updateInput();
-            m_sun.bind(m_defaultShader);
 
             // Processes input and swaps the window buffer
             m_window.swapBuffers();
@@ -179,7 +195,8 @@ private:
     int m_activeCamera = 1;
     DisplayMode m_displayMode = DisplayMode::PBR;
 
-    DirectionalLight m_sun { glm::vec3(-1, -1, -1), glm::vec3(1, 1, 1), 1.0f };
+    DirectionalLight m_sun {glm::vec3(0, 0.9f, -1), glm::vec3(1, 1, 1), 5.0f };
+    glm::vec3 m_ambientColor { 0.25f, 0.3f, 0.4f };
 };
 
 int main()

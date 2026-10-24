@@ -4,7 +4,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 DirectionalLight::DirectionalLight(const glm::vec3& direction, const glm::vec3& color, float intensity)
-    : m_direction(direction), m_color(color), m_intensity(intensity)
+    : m_direction(glm::normalize(direction)), m_color(color), m_intensity(intensity)
 {}
 
 void DirectionalLight::bind(const Shader& shader) const
